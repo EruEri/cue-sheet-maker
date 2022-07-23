@@ -1,0 +1,4 @@
+(library
+ (name cue_sheet_maker)
+ (public_name cue_sheet_maker)
+ )

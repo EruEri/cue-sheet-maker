@@ -1,0 +1,4 @@
+(test
+ (name test_cue_sheet_maker)
+ (libraries cue_sheet_maker)
+ )
