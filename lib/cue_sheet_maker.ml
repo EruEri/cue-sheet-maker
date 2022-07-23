@@ -89,6 +89,7 @@ module Duration = struct
   | `MinSecFra of (int*int*int)
   ]
 
+let zero_frame = `MinSecFra (0, 0, 0) 
 let minute_seconde_format ~min ~sec = `MinSec ( (min: int), (sec: int) )
 let minute_seconde_millieme_format ~min ~sec ~mil = `MinSecMil (  (min: int), (sec: int), (mil: int) )
 let minute_seconde_frame_format ~min ~sec ~frame = `MinSecFra (  (min: int), (sec: int), (frame: int) )
@@ -142,7 +143,13 @@ module CueTrack = struct
     track with indexs = track.indexs |> List.sort (fun (li, _)  (ri, _) -> compare li ri )
   }
 
-  let string_of_cue_track ?(tabulation = false) ?(sum = None) track =
+  let time_offset track = 
+    track.indexs
+    |> List.fold_left (fun acc (_, duration) ->
+        Duration.duration_add acc duration
+      ) Duration.zero_frame
+
+  let string_of_cue_track ?(tabulation = false) ?(compute = None) track =
     let open Printf in
     let cond_tab = (if tabulation then "\t" else "") in
     let track = sort_index track in
@@ -154,8 +161,16 @@ module CueTrack = struct
     let str_pregap = track.pregap |> Option.map (fun duration -> sprintf "\t%sPREGAP %s\n" cond_tab (Duration.string_of_duration duration) ) |> Option.value ~default: "" in
     let str_postgap = track.postgap |> Option.map (fun duration -> sprintf "\t%sPOSTGAP %s\n" cond_tab (Duration.string_of_duration duration) ) |> Option.value ~default: "" in
     let str_indexs = if track.indexs = [] then "" 
-      else track.indexs |> List.map (fun (track_index, duration) -> sprintf "\t%sINDEX 0%d %s\n" (cond_tab) (track_index) (sum |> Option.map (Duration.duration_add duration) |> Option.value ~default: duration |> Duration.string_of_duration)) |> String.concat (sprintf "\n\t%s" (cond_tab)) in
-    sprintf "%s%s%s%s%s%s%s\n" str_track str_cd_texts str_flags str_rem str_pregap str_postgap str_indexs
+      else 
+        track.indexs 
+        |> List.map (fun (track_index, duration) -> 
+        sprintf "\t%sINDEX 0%d %s" 
+        (cond_tab) 
+        (track_index) 
+        (compute |> Option.map (fun compute_duration -> match compute_duration with | `sum d -> Duration.duration_add d duration| `set d -> Duration.to_min_sec_fra d ) |> Option.value ~default: duration |> Duration.string_of_duration)
+        ) 
+        |> String.concat (sprintf "\n\t%s" (cond_tab)) in
+    sprintf "%s%s%s%s%s%s%s" str_track str_cd_texts str_flags str_rem str_pregap str_postgap str_indexs
 
 
   let create_empty_track ~track = {
@@ -273,6 +288,30 @@ module CueSheet = struct
     file = None;
     tracks = []
   }
+
+  let sort_track sheet = {
+    sheet with tracks = sheet.tracks |> List.sort ( fun ({ track = (l_index, _); _ }: CueTrack.cue_track) ({ track = (r_index, _); _ }: CueTrack.cue_track)  -> compare l_index r_index)
+  }
+
+  let string_of_cue_sheet ?(sum = false) cue_sheet =
+    let open Printf in
+  let cue_sheet = sort_track cue_sheet in
+  let str_catalog = cue_sheet.catalog |> Option.value ~default: "" in
+  let str_cd_text_file = cue_sheet.cd_text_file |> Option.value ~default: "" in
+  let str_cd_texts = if cue_sheet.cd_texts = [] then "" else  sprintf "%s\n" (cue_sheet.cd_texts |> List.map (string_of_cd_text) |> String.concat ("\n" )) in
+  let str_rems = if cue_sheet.rems |> Hashtbl.length = 0 then "" else cue_sheet.rems |> Hashtbl.to_seq |> Seq.map (fun (key, value) -> sprintf "REM %s %s\n" key value) |> List.of_seq |> List.rev |> String.concat "" in
+  let str_file = cue_sheet.file |> Option.map (fun (file_name, format) -> sprintf " FILE \"%s\" %s" file_name (string_of_cue_format format)) |> Option.value ~default: "" in
+  let str_tracks = 
+    cue_sheet.tracks 
+    |> List.fold_left_map (fun acc track ->
+      (
+        track |> CueTrack.time_offset |> Duration.duration_add acc,
+        track |> CueTrack.string_of_cue_track ~tabulation: true ~compute:( if sum then Some (`set acc) else None)
+      )
+      ) Duration.zero_frame
+    |> fun ( _ , s) -> s
+    |> String.concat "\n" in
+  sprintf "%s%s%s%s%s%s\n" str_catalog str_cd_text_file str_cd_texts str_rems str_file str_tracks
   
   let add_catalog catalog sheet = {
     sheet with catalog = Some catalog
@@ -339,11 +378,4 @@ module CueSheet = struct
       sheet with tracks = sheet.tracks |> List.filter (fun ({ track = (sheet_track_index, _); _ }: CueTrack.cue_track) -> sheet_track_index <> parameter_track_index ) |> List.cons track
     }
   
-  let sort_track sheet = {
-    sheet with tracks = sheet.tracks |> List.sort ( fun ({ track = (l_index, _); _ }: CueTrack.cue_track) ({ track = (r_index, _); _ }: CueTrack.cue_track)  -> compare l_index r_index)
-  }
-
-  
 end
-
-
