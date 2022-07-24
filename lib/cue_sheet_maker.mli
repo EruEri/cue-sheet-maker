@@ -4,7 +4,7 @@
     {!cuesheet:CueSheet} is the main sub module of the library: It contains functions to handle the cue sheet
 
     {!cuetrack:CueTrack} contains functions to handle tracks described in the cue sheet
-    
+
     {!duration:Duration} contains type to several forms for time representation
 *)
 
@@ -282,4 +282,16 @@ module CueSheet :
 
     (** Add a track to the sheet. If the index of the track already exist, the old value is replaced*)
     val add_track : CueTrack.cue_track -> cue_sheet -> cue_sheet
+
+    (**
+      Write the string representation of a cue sheet to the file [output]
+      
+      if [~sum] all the indexes of tracks will be set by adding the offset time of previous tracks.
+      Use [~sum] if you set for each track its length
+
+      See [string_of_cue_sheet]
+
+      @return unit if sucess or exn if an error occured with the file handling
+    *)
+    val export: ?sum:bool -> string -> cue_sheet -> (unit, exn) result
   end

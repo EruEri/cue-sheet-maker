@@ -370,5 +370,13 @@ module CueSheet = struct
     {
       sheet with tracks = sheet.tracks |> List.filter (fun ({ track = (sheet_track_index, _); _ }: CueTrack.cue_track) -> sheet_track_index <> parameter_track_index ) |> List.cons track
     }
+
+  let export ?(sum = false) output sheet = 
+    try
+      let str_sheet = sheet |> string_of_cue_sheet ~sum in
+      let out_chan = open_out output in
+      Out_channel.output_string out_chan str_sheet;
+      Out_channel.close out_chan |> Result.ok
+    with e -> Error e 
   
 end
