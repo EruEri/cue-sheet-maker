@@ -4,7 +4,7 @@ synopsis: "A library to create cue sheet"
 maintainer: ["EruEri"]
 authors: ["EruEri"]
 license: ["GNU" "GPLv3"]
-tags: ["topics" "Cue Sheet Maker" "your" "project"]
+tags: ["Cue Sheet Maker"]
 homepage: "https://github.com/EruEri/cue-sheet-maker"
 bug-reports: "https://github.com/EruEri/cue-sheet-maker/issues"
 depends: [
