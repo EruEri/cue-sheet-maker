@@ -18,7 +18,10 @@
 (package
  (name cue_sheet_maker)
  (synopsis "A library to create cue sheet")
- (depends ocaml dune)
+ (depends 
+    (ocaml (>= 4.14.0)) 
+    dune
+  )
  (tags
   ("Cue Sheet Maker")))
 
