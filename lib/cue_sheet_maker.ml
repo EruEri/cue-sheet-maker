@@ -98,7 +98,7 @@ let to_min_sec_fra = function
 | `MinSec (min, sec) -> `MinSecFra (min, sec, 0)
 | `MinSecMil (min, sec, mil) -> `MinSecFra (min, sec, (mil |> float_of_int |> ( *. ) 0.075 |> int_of_float) )
 | `MinSecFra _ as s -> s
-let duration_add lhs rhs = 
+let add lhs rhs = 
   let `MinSecFra (l_min, l_sec, l_frame) = to_min_sec_fra lhs in
   let `MinSecFra (r_min, r_sec, r_frame) = to_min_sec_fra rhs in
 
@@ -146,30 +146,30 @@ module CueTrack = struct
   let time_offset track = 
     track.indexs
     |> List.fold_left (fun acc (_, duration) ->
-        Duration.duration_add acc duration
+        Duration.add acc duration
       ) Duration.zero_frame
 
   let string_of_cue_track ?(tabulation = false) ?(compute = None) track =
     let open Printf in
-    let cond_tab = (if tabulation then "\t" else "") in
+    let cond_tab = (if tabulation then "  " else "") in
     let track = sort_index track in
     let index, track_mode = track.track in
     let str_track = sprintf "%sTRACK 0%d %s\n" (cond_tab) (index) (string_of_cue_track_mode track_mode) in
-    let str_cd_texts = if track.cd_texts = [] then "" else  sprintf "\t%s%s\n" (cond_tab) (track.cd_texts |> List.map (string_of_cd_text) |> String.concat (sprintf "\n\t%s" (cond_tab))) in
-    let str_flags = if track.flags = [] then "" else sprintf "\t%sFLAGS %s\n" (cond_tab) (track.flags |> List.map (string_of_cue_flag) |> String.concat " ") in
-    let str_rem = if track.rems |> Hashtbl.length = 0 then "" else track.rems |> Hashtbl.to_seq |> Seq.map (fun (key, value) -> sprintf "\t%sREM %s %s\n" cond_tab key value) |> List.of_seq |> List.rev |> String.concat (sprintf "" ) in
-    let str_pregap = track.pregap |> Option.map (fun duration -> sprintf "\t%sPREGAP %s\n" cond_tab (Duration.string_of_duration duration) ) |> Option.value ~default: "" in
-    let str_postgap = track.postgap |> Option.map (fun duration -> sprintf "\t%sPOSTGAP %s\n" cond_tab (Duration.string_of_duration duration) ) |> Option.value ~default: "" in
+    let str_cd_texts = if track.cd_texts = [] then "" else  sprintf "  %s%s\n" (cond_tab) (track.cd_texts |> List.map (string_of_cd_text) |> String.concat (sprintf "\n  %s" (cond_tab))) in
+    let str_flags = if track.flags = [] then "" else sprintf "  %sFLAGS %s\n" (cond_tab) (track.flags |> List.map (string_of_cue_flag) |> String.concat " ") in
+    let str_rem = if track.rems |> Hashtbl.length = 0 then "" else track.rems |> Hashtbl.to_seq |> Seq.map (fun (key, value) -> sprintf "  %sREM %s %s\n" cond_tab key value) |> List.of_seq |> List.rev |> String.concat (sprintf "" ) in
+    let str_pregap = track.pregap |> Option.map (fun duration -> sprintf "  %sPREGAP %s\n" cond_tab (Duration.string_of_duration duration) ) |> Option.value ~default: "" in
+    let str_postgap = track.postgap |> Option.map (fun duration -> sprintf "  %sPOSTGAP %s\n" cond_tab (Duration.string_of_duration duration) ) |> Option.value ~default: "" in
     let str_indexs = if track.indexs = [] then "" 
       else 
         track.indexs 
         |> List.map (fun (track_index, duration) -> 
-        sprintf "\t%sINDEX 0%d %s" 
+        sprintf "  %sINDEX 0%d %s" 
         (cond_tab) 
         (track_index) 
-        (compute |> Option.map (fun compute_duration -> match compute_duration with | `sum d -> Duration.duration_add d duration| `set d -> Duration.to_min_sec_fra d ) |> Option.value ~default: duration |> Duration.string_of_duration)
+        (compute |> Option.map (fun compute_duration -> match compute_duration with | `sum d -> Duration.add d duration| `set d -> Duration.to_min_sec_fra d ) |> Option.value ~default: duration |> Duration.string_of_duration)
         ) 
-        |> String.concat (sprintf "\n\t%s" (cond_tab)) in
+        |> String.concat (sprintf "\n  %s" (cond_tab)) in
     sprintf "%s%s%s%s%s%s%s" str_track str_cd_texts str_flags str_rem str_pregap str_postgap str_indexs
 
 
@@ -276,16 +276,16 @@ module CueSheet = struct
     | `Size_Info of string
     ] list;
   rems: (string, string) Hashtbl.t;
-  file: (string*cue_file_format) option; 
+  file: (string*cue_file_format); 
   tracks: CueTrack.cue_track list
   }
 
-  let create_empty_sheet = {
+  let create_empty_sheet ~file = {
     catalog = None;
     cd_text_file = None;
     cd_texts = [];
     rems = Hashtbl.create 5;
-    file = None;
+    file;
     tracks = []
   }
 
@@ -300,12 +300,12 @@ module CueSheet = struct
   let str_cd_text_file = cue_sheet.cd_text_file |> Option.value ~default: "" in
   let str_cd_texts = if cue_sheet.cd_texts = [] then "" else  sprintf "%s\n" (cue_sheet.cd_texts |> List.map (string_of_cd_text) |> String.concat ("\n" )) in
   let str_rems = if cue_sheet.rems |> Hashtbl.length = 0 then "" else cue_sheet.rems |> Hashtbl.to_seq |> Seq.map (fun (key, value) -> sprintf "REM %s %s\n" key value) |> List.of_seq |> List.rev |> String.concat "" in
-  let str_file = cue_sheet.file |> Option.map (fun (file_name, format) -> sprintf " FILE \"%s\" %s" file_name (string_of_cue_format format)) |> Option.value ~default: "" in
+  let str_file = cue_sheet.file |> fun (file_name, format) -> sprintf " FILE \"%s\" %s\n" file_name (string_of_cue_format format) in
   let str_tracks = 
     cue_sheet.tracks 
     |> List.fold_left_map (fun acc track ->
       (
-        track |> CueTrack.time_offset |> Duration.duration_add acc,
+        track |> CueTrack.time_offset |> Duration.add acc,
         track |> CueTrack.string_of_cue_track ~tabulation: true ~compute:( if sum then Some (`set acc) else None)
       )
       ) Duration.zero_frame
@@ -370,7 +370,7 @@ module CueSheet = struct
     sheet
 
   let add_file (filename, format) sheet = {
-    sheet with file = Some (filename, format)
+    sheet with file = (filename, format)
   }
   let add_track ( track: CueTrack.cue_track ) sheet = 
     let parameter_track_index, _ = track.track in
