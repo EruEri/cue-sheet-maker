@@ -365,9 +365,6 @@ module CueSheet = struct
     Hashtbl.replace sheet.rems (key |> String.uppercase_ascii) value;
     sheet
 
-  let add_file (filename, format) sheet = {
-    sheet with file = (filename, format)
-  }
   let add_track ( track: CueTrack.cue_track ) sheet = 
     let parameter_track_index, _ = track.track in
     {

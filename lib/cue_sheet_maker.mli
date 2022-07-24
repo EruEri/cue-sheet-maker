@@ -1,4 +1,12 @@
+(**
+    Cue sheet maker a library that allow to create cue sheet by given some information
 
+    {!cuesheet:CueSheet} is the main sub module of the library: It contains functions to handle the cue sheet
+
+    {!cuetrack:CueTrack} contains functions to handle tracks described in the cue sheet
+    
+    {!duration:Duration} contains type to several forms for time representation
+*)
 
 type cue_file_format = BINARY | MOTOROLA | AIFF | WAVE | MP3
 
@@ -160,7 +168,7 @@ module CueTrack :
     (** Add a genre to the track. If the genre already exist, the old value is replaced*)
     val add_genre : string -> cue_track -> cue_track
 
-    (** Add a isrc to the track. If the isrc already exist, the old value is replaced*)
+    (** Add an isrc to the track. If the isrc already exist, the old value is replaced*)
     val add_isrc : string -> cue_track -> cue_track
 
     (** Add a message to the track. If the message already exist, the old value is replaced*)
@@ -216,22 +224,62 @@ module CueSheet :
       file : string * cue_file_format;
       tracks : CueTrack.cue_track list;
     }
+
+    (**
+      Create an cue sheet representation with just the file name and its format
+    *)
     val create_empty_sheet : file:string * cue_file_format -> cue_sheet
+
+    (**
+      String representation of a cue sheet
+
+      if [~sum] all the indexes of tracks will be set by adding the offset time of previous tracks.
+      Use [~sum] if you set for each track its length
+    *)
     val string_of_cue_sheet : ?sum:bool -> cue_sheet -> string
+
+    (** Add a catalog to the sheet. If the catalog already exist, the old value is replaced*)
     val add_catalog : string -> cue_sheet -> cue_sheet
+
+    (** Add a cd text file to the sheet. If the cd text file already exist, the old value is replaced*)
     val add_cd_text_file : string -> cue_sheet -> cue_sheet
+
+    (** Add an arraanger to the sheet. If the arranger already exist, the old value is replaced*)
     val add_arranger : string -> cue_sheet -> cue_sheet
+
+    (** Add a composer to the sheet. If the composer already exist, the old value is replaced*)
     val add_composer : string -> cue_sheet -> cue_sheet
+
+    (** Add a disc id to the sheet. If the disc id already exist, the old value is replaced*)
     val add_disc_id : string -> cue_sheet -> cue_sheet
+
+    (** Add a genre to the sheet. If the genre already exist, the old value is replaced*)
     val add_genre : string -> cue_sheet -> cue_sheet
+
+    (** Add a message to the sheet. If the message already exist, the old value is replaced*)
     val add_message : string -> cue_sheet -> cue_sheet
+
+    (** Add a performer to the sheet. If the performer already exist, the old value is replaced*)
     val add_performer : string -> cue_sheet -> cue_sheet
+
+    (** Add a songwritter to the sheet. If the songwritter already exist, the old value is replaced*)
     val add_songwriter : string -> cue_sheet -> cue_sheet
+
+    (** Add a title to the sheet. If the title already exist, the old value is replaced*)
     val add_title : string -> cue_sheet -> cue_sheet
+
+    (** Add a toc info to the sheet. If the toc info already exist, the old value is replaced*)
     val add_toc_info : string -> cue_sheet -> cue_sheet
+
+    (** Add a toc info 2 to the sheet. If the toc info 2 already exist, the old value is replaced*)
     val add_toc_info2 : string -> cue_sheet -> cue_sheet
+
+    (** Add a size info to the sheet. If the size info talog already exist, the old value is replaced*)
     val add_size_info : string -> cue_sheet -> cue_sheet
+
+    (** Add a rem to the sheet. If the rem key already exist, the old value is replaced. All key are set uppercase*)
     val add_rem : string * string -> cue_sheet -> cue_sheet
-    val add_file : string * cue_file_format -> cue_sheet -> cue_sheet
+
+    (** Add a track to the sheet. If the index of the track already exist, the old value is replaced*)
     val add_track : CueTrack.cue_track -> cue_sheet -> cue_sheet
   end
