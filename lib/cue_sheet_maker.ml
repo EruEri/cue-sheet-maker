@@ -165,7 +165,7 @@ module CueTrack = struct
         (track_index) 
         (compute |> Option.map (fun compute_duration -> match compute_duration with | `sum d -> Duration.add d duration| `set d -> Duration.to_min_sec_fra d ) |> Option.value ~default: duration |> Duration.string_of_duration)
         ) 
-        |> String.concat (sprintf "\n  %s" (cond_tab)) in
+        |> String.concat "\n" in
     sprintf "%s%s%s%s%s%s%s" str_track str_cd_texts str_flags str_rem str_pregap str_postgap str_indexes
 
 
@@ -292,8 +292,8 @@ module CueSheet = struct
   let string_of_cue_sheet ?(sum = false) cue_sheet =
     let open Printf in
   let cue_sheet = sort_track cue_sheet in
-  let str_catalog = cue_sheet.catalog |> Option.value ~default: "" in
-  let str_cd_text_file = cue_sheet.cd_text_file |> Option.value ~default: "" in
+  let str_catalog = cue_sheet.catalog |> Option.map (format_string_value) |> Option.map (sprintf "CATALOG %s\n")  |> Option.value ~default: "" in
+  let str_cd_text_file = cue_sheet.cd_text_file |> Option.map (format_string_value) |> Option.map (sprintf "CDTEXTFILE %s\n") |> Option.value ~default: "" in
   let str_cd_texts = if cue_sheet.cd_texts = [] then "" else  sprintf "%s\n" (cue_sheet.cd_texts |> List.map (string_of_cd_text) |> String.concat ("\n" )) in
   let str_rems = if cue_sheet.rems |> Hashtbl.length = 0 then "" else cue_sheet.rems |> Hashtbl.to_seq |> Seq.map (fun (key, value) -> sprintf "REM %s %s\n" key value) |> List.of_seq |> List.rev |> String.concat "" in
   let str_file = cue_sheet.file |> fun (file_name, format) -> sprintf "FILE \"%s\" %s\n" file_name (string_of_cue_format format) in
