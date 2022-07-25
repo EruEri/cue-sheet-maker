@@ -1,7 +1,14 @@
 # Cue_sheet_maker
 A library to create cue sheet
 
-## Examples
+## Installation
+
+Cue_sheet_maker is available as an opam package:
+```
+opam install cue_sheet_maker
+```
+
+## Example
 
 A simple example on how to create a cue sheet
 
