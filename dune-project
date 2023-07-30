@@ -3,6 +3,7 @@
 (name cue_sheet_maker)
 
 (generate_opam_files true)
+(version 0.2.0)
 
 (source
  (github EruEri/cue-sheet-maker))
@@ -11,18 +12,18 @@
 
 (maintainers "EruEri")
 
-(license GPL-3.0+)
+(license MPL-2.0)
 
 ; (documentation https://url/to/documentation)
 
 (package
  (name cue_sheet_maker)
- (synopsis "A library to create cue sheet")
+ (synopsis "A library to create cuesheet")
  (depends 
     (ocaml (>= 4.14.0)) 
     dune
   )
  (tags
-  ("Cue Sheet Maker")))
+  ("cuesheet")))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
