@@ -1,19 +1,28 @@
+(**********************************************************************************************)
+(*                                                                                            *)
+(*  Copyright (C) 2023 Yves Ndiaye                                                            *)
+(*                                                                                            *)
+(* This Source Code Form is subject to the terms of the Mozilla Public                        *)
+(* License, v. 2.0. If a copy of the MPL was not distributed with this                        *)
+(* file, You can obtain one at https://mozilla.org/MPL/2.0/.                                  *)
+(*                                                                                            *)
+(**********************************************************************************************)
+
 (**
-    Cue sheet maker a library that allow to create cue sheet by given some information
+    Cue sheet maker is a library that allows to create cuesheet by given the necessary information
 
-    {!cuesheet:CueSheet} is the main sub module of the library: It contains functions to handle the cue sheet
+    {!cuesheet:CueSheet} is the main sub module of the library: It contains functions to handle the cuesheet
 
-    {!cuetrack:CueTrack} contains functions to handle tracks described in the cue sheet
+    {!cuetrack:CueTrack} contains functions to handle tracks described in the cuesheet
 
-    {!duration:Duration} contains type to several forms for time representation
+    {!duration:Duration} contains type to several forms of time representation
 *)
 
 module CueFileFormat : sig
   type t = BINARY | MOTOROLA | AIFF | WAVE | MP3
 
-  val string_of_cue_format: t -> string
-
-  val compare: t -> t -> int
+  val string_of_cue_format : t -> string
+  val compare : t -> t -> int
 end
 
 module CueTrackMode : sig
@@ -27,18 +36,15 @@ module CueTrackMode : sig
     | CDI_2336
     | CDI_2352
 
-  val string_of_cue_track_mode: t -> string
-
-  val compare: t -> t -> int
+  val string_of_cue_track_mode : t -> string
+  val compare : t -> t -> int
 end
 
-
-module CueTrackFlag : sig 
+module CueTrackFlag : sig
   type t = PRE | DCP | F_4CH | SCMS
 
-  val string_of_cue_flag: t -> string 
-
-  val compare: t -> t -> int
+  val string_of_cue_flag : t -> string
+  val compare : t -> t -> int
 end
 
 module Duration : sig

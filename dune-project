@@ -3,6 +3,7 @@
 (name cue_sheet_maker)
 
 (generate_opam_files true)
+(version 0.2.0)
 
 (source
  (github EruEri/cue-sheet-maker))
@@ -11,7 +12,7 @@
 
 (maintainers "EruEri")
 
-(license GPL-3.0+)
+(license MPL-2.0)
 
 ; (documentation https://url/to/documentation)
 
