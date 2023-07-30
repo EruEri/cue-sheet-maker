@@ -189,7 +189,6 @@ module CueTrack = struct
     let open Printf in
     let open CueTrackFlag in
     let open CueTrackMode in
-    let open CueFileFormat in
     let cond_tab = if tabulation then "  " else String.empty in
     let index, track_mode = track.track in
     let str_track =
@@ -408,7 +407,7 @@ module CueSheet = struct
   end
 
   module Inner_CDTextSet = Set.Make(Inner_CDText)
-  type cue_sheet = {
+  type t = {
     catalog : string option;
     cd_text_file : string option;
     cd_texts : Inner_CDTextSet.t;
