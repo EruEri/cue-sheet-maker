@@ -16,6 +16,12 @@
     {!cuetrack:CueTrack} contains functions to handle tracks described in the cuesheet
 
     {!duration:Duration} contains type to several forms of time representation
+
+    {!cuefileformat:CueFileFormat} contains several valid formats on which a cuesheet can reference 
+
+    {!cuetrackflag:CueTrackMode} contains several track mode
+
+    {!cuetrackmode:CueTrackFlag} contains per-track encoding flags
 *)
 
 module CueFileFormat : sig
