@@ -449,6 +449,7 @@ module CueSheet = struct
         |> Inner_CDTextSet.elements
         |> List.map CD_Text.string_of_cd_text
         |> String.concat "\n"
+        |> sprintf "%s\n"
     in
     let str_rems =
       let mapper = fun (key, value) -> sprintf "REM %s %s\n" key value in
