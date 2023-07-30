@@ -1,3 +1,8 @@
+module Formating = struct
+  let format_string_value s =
+    if String.contains s ' ' then Printf.sprintf "\"%s\"" s else s
+end
+
 module CueFileFormat = struct
   type t = BINARY | MOTOROLA | AIFF | WAVE | MP3
 
@@ -81,6 +86,37 @@ module CD_Text = struct
     | `Size_Info of string ]
 
   let compare : t -> t -> int = compare
+  
+  let string_of_cd_text =
+    let open Printf in
+    let open Formating in
+    function
+    | `Arranger s ->
+        sprintf "%s %s" "ARRANGER" (format_string_value s)
+    | `Composer s ->
+        sprintf "%s %s" "COMPOSER" (format_string_value s)
+    | `Disc_Id s ->
+        sprintf "%s %s" "DISC_ID" (format_string_value s)
+    | `Genre s ->
+        sprintf "%s %s" "GENRE" (format_string_value s)
+    | `Isrc s ->
+        sprintf "%s %s" "ISCR" (format_string_value s)
+    | `Message s ->
+        sprintf "%s %s" "MESSAGE" (format_string_value s)
+    | `Performer s ->
+        sprintf "%s %s" "PERFORMER" (format_string_value s)
+    | `Songwriter s ->
+        sprintf "%s %s" "SONGWRITER" (format_string_value s)
+    | `Title s ->
+        sprintf "%s %s" "TITLE" (format_string_value s)
+    | `Toc_Info s ->
+        sprintf "%s %s" "TOC_INFO" (format_string_value s)
+    | `Toc_Info2 s ->
+        sprintf "%s %s" "TOC_INFO2" (format_string_value s)
+    | `Upc_Ean s ->
+        sprintf "%s %s" "UPC_EAN" (format_string_value s)
+    | `Size_Info s ->
+        sprintf "%s %s" "SIZE_INFO" (format_string_value s)
 end
 
 module CueTrackModeSet = Set.Make (CueTrackMode)
@@ -88,39 +124,6 @@ module CueTrackFlagSet = Set.Make (CueTrackFlag)
 module RemsMap = Map.Make (String)
 module IndexMap = Map.Make(Int)
 module CD_TextSet = Set.Make (CD_Text)
-
-let format_string_value s =
-  if String.contains s ' ' then Printf.sprintf "\"%s\"" s else s
-
-let string_of_cd_text =
-  let open Printf in
-  function
-  | `Arranger s ->
-      sprintf "%s %s" "ARRANGER" (format_string_value s)
-  | `Composer s ->
-      sprintf "%s %s" "COMPOSER" (format_string_value s)
-  | `Disc_Id s ->
-      sprintf "%s %s" "DISC_ID" (format_string_value s)
-  | `Genre s ->
-      sprintf "%s %s" "GENRE" (format_string_value s)
-  | `Isrc s ->
-      sprintf "%s %s" "ISCR" (format_string_value s)
-  | `Message s ->
-      sprintf "%s %s" "MESSAGE" (format_string_value s)
-  | `Performer s ->
-      sprintf "%s %s" "PERFORMER" (format_string_value s)
-  | `Songwriter s ->
-      sprintf "%s %s" "SONGWRITER" (format_string_value s)
-  | `Title s ->
-      sprintf "%s %s" "TITLE" (format_string_value s)
-  | `Toc_Info s ->
-      sprintf "%s %s" "TOC_INFO" (format_string_value s)
-  | `Toc_Info2 s ->
-      sprintf "%s %s" "TOC_INFO2" (format_string_value s)
-  | `Upc_Ean s ->
-      sprintf "%s %s" "UPC_EAN" (format_string_value s)
-  | `Size_Info s ->
-      sprintf "%s %s" "SIZE_INFO" (format_string_value s)
 
 module Duration = struct
   type duration =
@@ -198,7 +201,7 @@ module CueTrack = struct
       | true ->
           String.empty
       | false ->
-          track.cd_texts |> CD_TextSet.elements |> List.map string_of_cd_text
+          track.cd_texts |> CD_TextSet.elements |> List.map CD_Text.string_of_cd_text
           |> String.concat (sprintf "\n  %s" cond_tab)
           |> sprintf "  %s%s\n" cond_tab
       (* if track.cd_texts = [] then
@@ -385,12 +388,11 @@ module CueTrack = struct
         { track with indexes}
 end
 
+module CueTrackSet = Set.Make(CueTrack)
+
 module CueSheet = struct
-  type cue_sheet = {
-    catalog : string option;
-    cd_text_file : string option;
-    cd_texts :
-      [ `Arranger of string
+  module Inner_CDText = struct
+    type t = [ `Arranger of string
       | `Composer of string
       | `Disc_Id of string
       | `Genre of string
@@ -401,38 +403,33 @@ module CueSheet = struct
       | `Toc_Info of string
       | `Toc_Info2 of string
       | `Size_Info of string ]
-      list;
-    rems : (string, string) Hashtbl.t;
-    file : string * cue_file_format;
-    tracks : CueTrack.cue_track list;
+    
+    let compare : t -> t -> int = compare
+  end
+
+  module Inner_CDTextSet = Set.Make(Inner_CDText)
+  type cue_sheet = {
+    catalog : string option;
+    cd_text_file : string option;
+    cd_texts : Inner_CDTextSet.t;
+    rems : string RemsMap.t;
+    file : string * CueFileFormat.t;
+    tracks : CueTrackSet.t;
   }
 
   let create_empty_sheet ~file =
     {
       catalog = None;
       cd_text_file = None;
-      cd_texts = [];
-      rems = Hashtbl.create 5;
+      cd_texts = Inner_CDTextSet.empty;
+      rems = RemsMap.empty;
       file;
-      tracks = [];
-    }
-
-  let sort_track sheet =
-    {
-      sheet with
-      tracks =
-        sheet.tracks
-        |> List.sort
-             (fun
-               ({ track = l_index, _; _ } : CueTrack.cue_track)
-               ({ track = r_index, _; _ } : CueTrack.cue_track)
-             -> compare l_index r_index
-           );
+      tracks = CueTrackSet.empty;
     }
 
   let string_of_cue_sheet ?(sum = false) cue_sheet =
     let open Printf in
-    let cue_sheet = sort_track cue_sheet in
+    let open Formating in
     let str_catalog =
       cue_sheet.catalog
       |> Option.map format_string_value
@@ -446,37 +443,41 @@ module CueSheet = struct
       |> Option.value ~default:""
     in
     let str_cd_texts =
-      if cue_sheet.cd_texts = [] then ""
-      else
-        sprintf "%s\n"
-          (cue_sheet.cd_texts |> List.map string_of_cd_text
-         |> String.concat "\n"
-          )
+      match Inner_CDTextSet.is_empty cue_sheet.cd_texts with
+      | true -> String.empty
+      | false -> 
+        cue_sheet.cd_texts
+        |> Inner_CDTextSet.elements
+        |> List.map CD_Text.string_of_cd_text
+        |> String.concat "\n"
     in
     let str_rems =
-      if cue_sheet.rems |> Hashtbl.length = 0 then ""
-      else
-        cue_sheet.rems |> Hashtbl.to_seq
-        |> Seq.map (fun (key, value) -> sprintf "REM %s %s\n" key value)
-        |> List.of_seq |> List.rev |> String.concat ""
+      let mapper = fun (key, value) -> sprintf "REM %s %s\n" key value in
+      match RemsMap.is_empty cue_sheet.rems with
+      | true -> String.empty
+      | false -> 
+        cue_sheet.rems
+        |> RemsMap.bindings
+        |> List.map mapper
+        |> String.concat String.empty
     in
     let str_file =
       cue_sheet.file
       |> fun (file_name, format) ->
-      sprintf "FILE \"%s\" %s\n" file_name (string_of_cue_format format)
+      sprintf "FILE \"%s\" %s\n" file_name (CueFileFormat.string_of_cue_format format)
     in
     let str_tracks =
       cue_sheet.tracks
+      |> CueTrackSet.elements
       |> List.fold_left_map
            (fun acc track ->
-             ( track |> CueTrack.time_offset |> Duration.add acc,
-               track
-               |> CueTrack.string_of_cue_track ~tabulation:true
-                    ~compute:(if sum then Some (`set acc) else None)
-             )
+            let offset = track |> CueTrack.time_offset |> Duration.add acc in
+            let str_cue = CueTrack.string_of_cue_track ~tabulation:true
+            ~compute:(if sum then Some (`set acc) else None) track in
+            offset, str_cue
            )
            Duration.zero_frame
-      |> fun (_, s) -> s |> String.concat "\n"
+      |> snd |> String.concat "\n"
     in
     sprintf "%s%s%s%s%s%s\n" str_catalog str_cd_text_file str_cd_texts str_rems
       str_file str_tracks
@@ -489,117 +490,80 @@ module CueSheet = struct
   let add_arranger arranger sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Arranger _ -> false | _ -> true)
-        |> List.cons (`Arranger arranger);
+      cd_texts = Inner_CDTextSet.add (`Arranger arranger) sheet.cd_texts
     }
 
   let add_composer composer sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Composer _ -> false | _ -> true)
-        |> List.cons (`Composer composer);
+      cd_texts = Inner_CDTextSet.add (`Composer composer) sheet.cd_texts
     }
 
   let add_disc_id disc_id sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Disc_Id _ -> false | _ -> true)
-        |> List.cons (`Disc_Id disc_id);
+      cd_texts = Inner_CDTextSet.add (`Disc_Id disc_id) sheet.cd_texts
     }
 
   let add_genre genre sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Genre _ -> false | _ -> true)
-        |> List.cons (`Genre genre);
+      cd_texts = Inner_CDTextSet.add (`Genre genre) sheet.cd_texts
     }
 
   let add_message message sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Message _ -> false | _ -> true)
-        |> List.cons (`Message message);
+      cd_texts = Inner_CDTextSet.add (`Message message) sheet.cd_texts
     }
 
   let add_performer performer sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Performer _ -> false | _ -> true)
-        |> List.cons (`Performer performer);
+      cd_texts = Inner_CDTextSet.add (`Performer performer) sheet.cd_texts
     }
 
   let add_songwriter songwriter sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Songwriter _ -> false | _ -> true)
-        |> List.cons (`Songwriter songwriter);
+      cd_texts = Inner_CDTextSet.add (`Songwriter songwriter) sheet.cd_texts
     }
 
   let add_title title sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Title _ -> false | _ -> true)
-        |> List.cons (`Title title);
+      cd_texts = Inner_CDTextSet.add (`Title title) sheet.cd_texts
     }
 
   let add_toc_info toc_info sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Toc_Info _ -> false | _ -> true)
-        |> List.cons (`Toc_Info toc_info);
+      cd_texts = Inner_CDTextSet.add (`Toc_Info toc_info) sheet.cd_texts
     }
 
-  let add_toc_info2 disc_id sheet =
+  let add_toc_info2 toc_info2 sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Toc_Info2 _ -> false | _ -> true)
-        |> List.cons (`Toc_Info2 disc_id);
+      cd_texts = Inner_CDTextSet.add (`Toc_Info2 toc_info2) sheet.cd_texts
     }
 
   let add_size_info size_info sheet =
     {
       sheet with
-      cd_texts =
-        sheet.cd_texts
-        |> List.filter (function `Size_Info _ -> false | _ -> true)
-        |> List.cons (`Size_Info size_info);
+      cd_texts = Inner_CDTextSet.add (`Size_Info size_info) sheet.cd_texts
     }
 
   let add_rem (key, value) sheet =
-    Hashtbl.replace sheet.rems (key |> String.uppercase_ascii) value;
-    sheet
+    let key = String.uppercase_ascii key in
+    let rems = RemsMap.add key value sheet.rems in
+    {
+      sheet with rems
+    }
 
-  let add_track (track : CueTrack.cue_track) sheet =
-    let parameter_track_index, _ = track.track in
+  let add_track (track : CueTrack.t) sheet =
     {
       sheet with
-      tracks =
-        sheet.tracks
-        |> List.filter
-             (fun ({ track = sheet_track_index, _; _ } : CueTrack.cue_track) ->
-               sheet_track_index <> parameter_track_index
-           )
-        |> List.cons track;
+      tracks = CueTrackSet.add track sheet.tracks
     }
 
   let export ?(sum = false) output sheet =
